@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マイ日記 & メモアプリ</title>
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons (CDN) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f7f9fa;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-gray-800">
+
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        <!-- ヘッダー -->
+        <header class="flex items-center justify-between mb-8 pb-4 border-b border-gray-200">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 text-white p-2.5 rounded-2xl shadow-md">
+                    <i data-lucide="book-open" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-gray-900">LifeLog</h1>
+                    <p class="text-xs text-gray-500">日常を書き留めるシンプル日記/メモ</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <span id="current-date" class="text-sm font-medium text-gray-500"></span>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- 左カラム：新規作成フォーム (40%) -->
+            <section class="lg:col-span-5 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit">
+                <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <i data-lucide="pen-tool" class="w-5 h-5 text-indigo-600"></i>
+                    新しい日記を書く
+                </h2>
+                
+                <form id="diary-form" class="space-y-4">
+                    <!-- タイトル入力欄 -->
+                    <div>
+                        <label for="title" class="block text-sm font-medium text-gray-700 mb-1">タイトル</label>
+                        <input type="text" id="title" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-sm placeholder-gray-400"
+                            placeholder="今日のできごとやタイトル...">
+                    </div>
+
+                    <!-- 本文入力欄 -->
+                    <div>
+                        <label for="content" class="block text-sm font-medium text-gray-700 mb-1">本文</label>
+                        <textarea id="content" rows="6" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-sm placeholder-gray-400"
+                            placeholder="ここに入力してください..."></textarea>
+                    </div>
+
+                    <!-- タグ入力欄 -->
+                    <div>
+                        <label for="tags" class="block text-sm font-medium text-gray-700 mb-1">タグ</label>
+                        <input type="text" id="tags"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-sm placeholder-gray-400"
+                            placeholder="カンマ区切りで複数入力可（例: 日常, カフェ, 読書）">
+                        <p class="text-xs text-gray-400 mt-1">※複数のタグを指定する場合は、コンマ「,」で区切ってください。</p>
+                    </div>
+
+                    <!-- 保存ボタン -->
+                    <button type="submit"
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        日記を保存する
+                    </button>
+                </form>
+            </section>
+
+            <!-- 右カラム：一覧 ＆ 検索スペース (60%) -->
+            <section class="lg:col-span-7 flex flex-col gap-6">
+                <!-- 検索・フィルターエリア -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            <i data-lucide="archive" class="w-5 h-5 text-indigo-600"></i>
+                            保存された日記一覧
+                        </h2>
+                        <!-- 簡易統計 -->
+                        <span id="diary-count" class="text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full font-semibold">
+                            全 0 件
+                        </span>
+                    </div>
+
+                    <!-- タグ検索フォーム -->
+                    <div class="mt-4">
+                        <div class="relative">
+                            <input type="text" id="tag-search"
+                                class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-sm"
+                                placeholder="タグ名で絞り込む（例: カフェ）...">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                <i data-lucide="search" class="w-4 h-4"></i>
+                            </div>
+                            <button id="clear-search" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 hidden">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- 人気・登録済みタグのサジェスト領域 -->
+                        <div id="suggested-tags-container" class="mt-3 flex flex-wrap gap-1.5 items-center hidden">
+                            <span class="text-xs text-gray-500 mr-1">よく使うタグ:</span>
+                            <div id="suggested-tags-list" class="flex flex-wrap gap-1"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 通知トーストメッセージ領域 -->
+                <div id="toast" class="hidden fixed bottom-5 right-5 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 z-50 transition-all duration-300">
+                    <span id="toast-message">メッセージ</span>
+                </div>
+
+                <!-- 日記タイムライン表示スペース -->
+                <div id="diary-list" class="space-y-4">
+                    <!-- JavaScriptでここに日記カードを挿入 -->
+                </div>
+
+                <!-- 日記が空の時の表示 -->
+                <div id="empty-state" class="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center">
+                    <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="folder-open" class="w-8 h-8 text-gray-400"></i>
+                    </div>
+                    <h3 class="text-base font-semibold text-gray-900 mb-1">まだ日記がありません</h3>
+                    <p class="text-sm text-gray-500 max-w-sm mx-auto">
+                        左側のフォームから、今日のできごとやメモを登録してみましょう!
+                    </p>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        // --- 状態管理 (In-Memory / LocalStorage) ---
+        let diaries = JSON.parse(localStorage.getItem('diaries')) || [];
+        let activeTagSearch = '';
+
+        // --- DOM要素 ---
+        const diaryForm = document.getElementById('diary-form');
+        const titleInput = document.getElementById('title');
+        const contentInput = document.getElementById('content');
+        const tagsInput = document.getElementById('tags');
+        const tagSearchInput = document.getElementById('tag-search');
+        const clearSearchBtn = document.getElementById('clear-search');
+        const diaryList = document.getElementById('diary-list');
+        const emptyState = document.getElementById('empty-state');
+        const diaryCountSpan = document.getElementById('diary-count');
+        const suggestedTagsContainer = document.getElementById('suggested-tags-container');
+        const suggestedTagsList = document.getElementById('suggested-tags-list');
+        const currentDateSpan = document.getElementById('current-date');
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toast-message');
+
+        // --- 初期設定 ---
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            updateCurrentDate();
+            renderDiaries();
+            updateSuggestedTags();
+
+            // 定期的にヘッダーの日時を更新
+            setInterval(updateCurrentDate, 60000);
+        });
+
+        // 現在の日時表示を更新
+        function updateCurrentDate() {
+            const now = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit' };
+            currentDateSpan.textContent = now.toLocaleDateString('ja-JP', options);
+        }
+
+        // --- トースト通知 ---
+        function showToast(message, type = 'success') {
+            toastMessage.textContent = message;
+            toast.classList.remove('hidden', 'bg-red-600', 'bg-indigo-600');
+            
+            if (type === 'danger') {
+                toast.classList.add('bg-red-600');
+            } else {
+                toast.classList.add('bg-indigo-600');
+            }
+
+            // フェードイン
+            toast.style.opacity = '1';
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 300);
+            }, 3000);
+        }
+
+        // --- 新規登録機能 ---
+        diaryForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const title = titleInput.value.trim();
+            const content = contentInput.value.trim();
+            
+            // タグの処理（カンマ区切りを分解し、前後の不要な空白を削除）
+            const tagsText = tagsInput.value.trim();
+            const tags = tagsText
+                ? tagsText.split(/[,，]/).map(t => t.trim()).filter(t => t.length > 0)
+                : [];
+
+            if (!title || !content) {
+                showToast('タイトルと本文を入力してください。', 'danger');
+                return;
+            }
+
+            // 現在日時を取得
+            const now = new Date();
+            const formattedDate = formatDateTime(now);
+
+            // 日記オブジェクト作成
+            const newDiary = {
+                id: 'diary-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+                title: title,
+                content: content,
+                tags: tags,
+                timestamp: formattedDate,
+                rawDate: now.toISOString()
+            };
+
+            // 配列の先頭に追加 (最新のものが上にくるように)
+            diaries.unshift(newDiary);
+            
+            // データを保存
+            saveToLocalStorage();
+
+            // フォームリセット
+            diaryForm.reset();
+
+            // リストの再描画
+            renderDiaries();
+            updateSuggestedTags();
+            
+            showToast('日記を保存しました!');
+        });
+
+        // 日時フォーマット用の関数 (YYYY/MM/DD HH:mm:ss)
+        function formatDateTime(date) {
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            const hh = String(date.getHours()).padStart(2, '0');
+            const min = String(date.getMinutes()).padStart(2, '0');
+            
+            return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
+        }
+
+        // データの永続化
+        function saveToLocalStorage() {
+            localStorage.setItem('diaries', JSON.stringify(diaries));
+        }
+
+        // --- 削除機能 ---
+        window.deleteDiary = function(id) {
+            diaries = diaries.filter(d => d.id !== id);
+            saveToLocalStorage();
+            renderDiaries();
+            updateSuggestedTags();
+            showToast('日記を削除しました。');
+        };
+
+        // --- タグサジェストの更新 ---
+        function updateSuggestedTags() {
+            // 全ての日記から一意のタグを抽出
+            const allTags = new Set();
+            diaries.forEach(d => {
+                if (d.tags) {
+                    d.tags.forEach(tag => allTags.add(tag));
+                }
+            });
+
+            if (allTags.size > 0) {
+                suggestedTagsContainer.classList.remove('hidden');
+                suggestedTagsList.innerHTML = '';
+                
+                // 上位5つ程度を表示
+                Array.from(allTags).slice(0, 8).forEach(tag => {
+                    const tagBtn = document.createElement('button');
+                    tagBtn.className = 'text-xs bg-gray-100 hover:bg-indigo-50 hover:text-indigo-600 text-gray-600 px-2.5 py-1 rounded-full transition-colors font-medium';
+                    tagBtn.textContent = `#${tag}`;
+                    tagBtn.addEventListener('click', () => {
+                        tagSearchInput.value = tag;
+                        triggerSearch(tag);
+                    });
+                    suggestedTagsList.appendChild(tagBtn);
+                });
+            } else {
+                suggestedTagsContainer.classList.add('hidden');
+            }
+        }
+
+        // --- 検索機能 ---
+        tagSearchInput.addEventListener('input', (e) => {
+            const val = e.target.value.trim();
+            triggerSearch(val);
+        });
+
+        clearSearchBtn.addEventListener('click', () => {
+            tagSearchInput.value = '';
+            triggerSearch('');
+        });
+
+        function triggerSearch(query) {
+            activeTagSearch = query;
+            if (query) {
+                clearSearchBtn.classList.remove('hidden');
+            } else {
+                clearSearchBtn.classList.add('hidden');
+            }
+            renderDiaries();
+        }
+
+        // 指定のタグで一覧検索をかけるヘルパー関数 (カード内のタグをクリックした用)
+        window.searchByTag = function(tag) {
+            tagSearchInput.value = tag;
+            triggerSearch(tag);
+            // 検索スペースまでスクロールさせる
+            tagSearchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        };
+
+        // --- 描画処理 ---
+        function renderDiaries() {
+            // フィルタリング処理（タグ検索が有効な場合）
+            let filteredDiaries = diaries;
+            if (activeTagSearch) {
+                const searchLower = activeTagSearch.toLowerCase();
+                filteredDiaries = diaries.filter(d => 
+                    d.tags && d.tags.some(tag => tag.toLowerCase().includes(searchLower))
+                );
+            }
+
+            // 件数表示の更新
+            if (activeTagSearch) {
+                diaryCountSpan.textContent = `検索結果: ${filteredDiaries.length} / 全 ${diaries.length} 件`;
+                diaryCountSpan.className = "text-xs bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-semibold";
+            } else {
+                diaryCountSpan.textContent = `全 ${diaries.length} 件`;
+                diaryCountSpan.className = "text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full font-semibold";
+            }
+
+            // リストのクリア
+            diaryList.innerHTML = '';
+
+            // 空の状態判定
+            if (filteredDiaries.length === 0) {
+                emptyState.classList.remove('hidden');
+                // 検索中で結果がない場合
+                if (activeTagSearch) {
+                    emptyState.querySelector('h3').textContent = '該当する日記が見つかりません';
+                    emptyState.querySelector('p').textContent = '別のタグ名で検索をお試しください。';
+                } else {
+                    emptyState.querySelector('h3').textContent = 'まだ日記がありません';
+                    emptyState.querySelector('p').textContent = '左側のフォームから、今日のできごとやメモを登録してみましょう!';
+                }
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            // カードの生成
+            filteredDiaries.forEach(diary => {
+                const card = document.createElement('article');
+                card.className = "bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative group duration-200";
+
+                // タグのHTMLを生成
+                let tagsHtml = '';
+                if (diary.tags && diary.tags.length > 0) {
+                    tagsHtml = `
+                        <div class="flex flex-wrap gap-1.5 mt-4">
+                            ${diary.tags.map(tag => `
+                                <button onclick="searchByTag('${tag}')" class="inline-flex items-center gap-0.5 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-2.5 py-1 rounded-full font-medium transition-colors">
+                                    <i data-lucide="hash" class="w-3 h-3"></i>${tag}
+                                </button>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                // 改行をbrに変換
+                const formattedContent = escapeHtml(diary.content).replace(/\n/g, '<br>');
+
+                card.innerHTML = `
+                    <!-- 削除ボタン (ホバーで表示) -->
+                    <button onclick="deleteDiary('${diary.id}')" 
+                        class="absolute top-4 right-4 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 focus:opacity-100 p-1.5 hover:bg-red-50 rounded-lg transition-all duration-200"
+                        title="日記を削除">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+
+                    <div class="flex flex-col h-full justify-between">
+                        <div>
+                            <!-- 1. タイトル -->
+                            <h3 class="text-lg font-bold text-gray-900 pr-8 mb-2 leading-snug">
+                                ${escapeHtml(diary.title)}
+                            </h3>
+                            
+                            <!-- 2. 本文 -->
+                            <p class="text-sm text-gray-600 leading-relaxed break-words whitespace-pre-line">
+                                ${formattedContent}
+                            </p>
+                        </div>
+                        
+                        <div>
+                            <!-- 3. タグ -->
+                            ${tagsHtml}
+                            
+                            <!-- 4. 保存日時 -->
+                            <div class="mt-4 pt-3 border-t border-gray-50 flex items-center justify-between text-xs text-gray-400">
+                                <span class="flex items-center gap-1">
+                                    <i data-lucide="clock" class="w-3.5 h-3.5 text-gray-300"></i>
+                                    作成日: ${diary.timestamp}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                diaryList.appendChild(card);
+            });
+
+            // 動的追加した要素のアイコンを再読み込み
+            lucide.createIcons();
+        }
+
+        // HTMLエスケープ処理 (セキュリティ対策)
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
