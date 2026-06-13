@@ -1,2 +1,2 @@
-# diary-app
-Created by Gemini
+# 日記アプリ
+Geminiによって作成されました。
